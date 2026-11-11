@@ -1,4 +1,4 @@
-# Dokter Ngomong Jadi Rekam Medis - V3 FINAL (100% Aman & Sistematis)
+# Dokter Ngomong Jadi Rekam Medis - V3.1 FINAL (100% Aman & Sistematis)
 # Input: Transkrip teks suara dokter
 # Output: Rekam Medis rapi + ICD-10 + Resep + File JSON di laporan/
 # DISCLAIMER: Alat bantu pencatatan, BUKAN pengganti diagnosis dokter.
@@ -63,9 +63,11 @@ class DokterVoiceToEHR:
         return "-"
 
     def ekstrak_suhu(self, teks):
+        # FIX BUG 1: koma diubah jadi titik biar 38,5 -> 38.5°C
         match = re.search(r'(\d{2,3}[.,]\d)\s*(derajat|°c|c)?', teks)
         if match:
-            return f"{match.group(1)}°C"
+            suhu_bersih = match.group(1).replace(',', '.')
+            return f"{suhu_bersih}°C"
         return "Tidak tercatat"
 
     def anonymize_id(self, id_pasien):
@@ -89,16 +91,20 @@ class DokterVoiceToEHR:
         teks_bersih = self.bersihkan_teks_jawa(transkrip_suara)
         print(f"Diterjemahkan: {teks_bersih}")
 
+        # FIX BUG 2: cegah duplikat ICD - kalau kodenya sama, cuma ambil 1x
+        # Urut dari gejala terpanjang dulu biar "sesak napas" menang dari "sesak"
         gejala_ditemukan = []
         kode_icd = []
-        for gejala, kode in self.kamus_icd10.items():
-            if gejala in teks_bersih:
+        kode_sudah_dipakai = set()
+        for gejala, kode in sorted(self.kamus_icd10.items(), key=lambda x: len(x[0]), reverse=True):
+            if gejala in teks_bersih and kode not in kode_sudah_dipakai:
                 gejala_ditemukan.append(gejala)
                 kode_icd.append(f"{gejala} -> {kode}")
+                kode_sudah_dipakai.add(kode)
 
         resep = []
         for kata_obat, dosis in self.kamus_obat.items():
-            if kata_obat in teks_bersih:
+            if kata_obat in teks_bersih and dosis not in resep:
                 resep.append(dosis)
 
         rekam_medis = {
