@@ -1,0 +1,13 @@
+{
+  "id_pasien_anonim": "PASIEN-001",
+  "tanggal": "11 November 2026 10:00",
+  "keluhan_utama": "pasiene flu / pilek, menggigil / meriang, demam 3 hari, tensi 140/90",
+  "gejala": ["demam", "pilek", "batuk"],
+  "tensi": "140/90 mmHg",
+  "suhu": "38.5°C",
+  "durasi_sakit": "3 hari",
+  "diagnosa_icd10": ["demam -> R50.9", "pilek -> J00"],
+  "resep": ["Paracetamol 500mg - 3x1"],
+  "disclaimer": "Alat bantu pencatatan, BUKAN diagnosis. Wajib verifikasi dokter.",
+  "status": "Selesai - Otomatis dari suara"
+}
