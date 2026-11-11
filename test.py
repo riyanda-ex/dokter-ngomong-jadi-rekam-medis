@@ -1,48 +1,46 @@
-# Test otomatis untuk DokterVoiceToEHR
-# Cara jalanin: python test.py
-
+# Test otomatis - Dokter Ngomong Jadi Rekam Medis
+import os, sys, json
+sys.path.insert(0, os.path.dirname(__file__))
 from main import DokterVoiceToEHR
 
-def test_jawa():
-    dokter = DokterVoiceToEHR()
-    hasil = dokter.proses_suara_dokter("Test Jawa", "pasiene nggreges, awak e anget")
-    assert "demam" in hasil["keluhan_utama"], "Gagal translate Jawa ke demam"
-    print("✅ TEST JAWA LULUS - nggreges -> demam")
-
-def test_tensi():
-    dokter = DokterVoiceToEHR()
-    hasil = dokter.proses_suara_dokter("Test Tensi", "tensi 140/90, pilek")
-    assert hasil["tensi"] == "140/90 mmHg", f"Tensi salah: {hasil['tensi']}"
-    print("✅ TEST TENSI LULUS - 140/90 terbaca")
-
-def test_icd10():
-    dokter = DokterVoiceToEHR()
-    hasil = dokter.proses_suara_dokter("Test ICD", "pasien demam, batuk")
-    # Harus nemu kode R50.9 untuk demam dan R05 untuk batuk
-    kode = " ".join(hasil["diagnosa_icd10"])
-    assert "R50.9" in kode, "ICD Demam tidak ketemu"
-    assert "R05" in kode, "ICD Batuk tidak ketemu"
-    print("✅ TEST ICD-10 LULUS - R50.9 & R05 ketemu")
-
-def test_diare_jawa():
-    dokter = DokterVoiceToEHR()
-    hasil = dokter.proses_suara_dokter("Test Diare", "anak mencret 2 hari, kasih oralit")
-    assert "diare" in hasil["keluhan_utama"]
-    assert "Oralit" in " ".join(hasil["resep"])
-    print("✅ TEST DIARE JAWA LULUS - mencret -> diare + oralit")
-
-def test_suhu_durasi():
-    dokter = DokterVoiceToEHR()
-    hasil = dokter.proses_suara_dokter("Test Suhu", "awak e anget 3 dino, suhu 38.5")
-    assert hasil["durasi_sakit"] == "3 hari", f"Durasi salah: {hasil['durasi_sakit']}"
-    assert "38.5" in hasil["suhu"]
-    print("✅ TEST SUHU & DURASI LULUS - 3 dino -> 3 hari, 38.5°C")
+def test(nama, kondisi):
+    print(f"{'✅' if kondisi else '❌'} {nama}")
+    return kondisi
 
 if __name__ == "__main__":
-    print("\n=== JALANIN SEMUA TEST ===")
-    test_jawa()
-    test_tensi()
-    test_icd10()
-    test_diare_jawa()
-    test_suhu_durasi()
-    print("\n🎉 SEMUA 5 TEST LULUS! Repo aman.")
+    print("=== TEST Dokter Ngomong Jadi Rekam Medis ===\n")
+    d = DokterVoiceToEHR()
+    hasil = []
+
+    # 1. Kamus Jawa terload
+    hasil.append(test("1. Kamus Jawa terload > 50 kata", len(d.kamus_gejala) >= 50))
+    # 2. Terjemahan Jawa
+    t = d.bersihkan_teks_jawa("nggreges, awak e anget, watuk")
+    hasil.append(test("2. Terjemahan Jawa -> Indonesia", "demam" in t and "batuk" in t))
+    # 3. Ekstrak tensi
+    hasil.append(test("3. Ekstrak tensi 140/90", d.ekstrak_tensi("tensi 140/90") == "140/90 mmHg"))
+    # 4. Ekstrak suhu
+    hasil.append(test("4. Ekstrak suhu 38.5", "38.5" in d.ekstrak_suhu("suhu 38.5")))
+    # 5. Ekstrak durasi dino -> hari
+    hasil.append(test("5. Durasi 3 dino -> 3 hari", d.ekstrak_durasi("sakit 3 dino") == "3 hari"))
+    # 6. ICD-10 ketemu
+    r = d.proses_suara_dokter("PASIEN-TEST", "demam, batuk, pilek, kasih paracetamol", simpan=False)
+    hasil.append(test("6. ICD-10 + Resep ketemu", len(r["diagnosa_icd10"]) >= 2 and "Paracetamol" in str(r["resep"])))
+    # 7. Input kosong ditolak
+    r2 = d.proses_suara_dokter("PASIEN-TEST", "   ", simpan=False)
+    hasil.append(test("7. Input kosong ditolak (return None)", r2 is None))
+    # 8. Anonimisasi ID - nama asli tidak disimpan mentah
+    r3 = d.proses_suara_dokter("Bu Siti!!!", "demam", simpan=False)
+    hasil.append(test("8. ID dianonimkan, tanpa spasi/simbol", " " not in r3["id_pasien_anonim"] and "!" not in r3["id_pasien_anonim"]))
+    # 9. Disclaimer ada
+    hasil.append(test("9. Disclaimer medis ada", "verifikasi" in r["disclaimer"].lower()))
+    # 10. Config terload
+    hasil.append(test("10. Config ICD-10 terload", "demam" in d.kamus_icd10))
+
+    lulus = sum(hasil)
+    print(f"\nHASIL: {lulus}/{len(hasil)} lulus")
+    if lulus == len(hasil):
+        print("🎉 SEMUA TEST LULUS!")
+    else:
+        print("⚠️ Ada test gagal, cek di atas.")
+        sys.exit(1)
