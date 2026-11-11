@@ -1,7 +1,7 @@
 # 🩺 Dokter Ngomong Jadi Rekam Medis
 
 ![Python](https://img.shields.io/badge/Python-3.11-blue)
-![Tests](https://github.com/RIYANDA-SETYA-RAHMANU/dokter-ngomong-jadi-rekam-medis/actions/workflows/test.yml/badge.svg)
+![Tests](https://github.com/riyanda-ex/dokter-ngomong-jadi-rekam-medis/actions/workflows/test.yml/badge.svg)
 ![License](https://img.shields.io/badge/License-All%20Rights%20Reserved-red)
 ![Status](https://img.shields.io/badge/Status-Selesai-green)
 ![Klinik](https://img.shields.io/badge/Klinik-Al%20Madina%20Husada-teal)
